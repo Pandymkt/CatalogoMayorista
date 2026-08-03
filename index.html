@@ -9442,20 +9442,9 @@ Este pantalón babucha, confeccionado en algodón 100% rústico, garantiza suavi
       var phoneVal = phoneInput ? phoneInput.value.trim() : '';
       var notesVal = notesInput ? notesInput.value.trim() : '';
       
-      var text = '🛒 *NUEVO PEDIDO DESDE EL CATÁLOGO*\n';
-      text += '━━━━━━━━━━━━━━━━━━━━━━━━\n';
-      text += '👤 *Cliente:* ' + (nameVal || 'No especificado') + '\n';
-      if (emailVal) text += '📧 *Email:* ' + emailVal + '\n';
-      if (phoneVal) text += '📞 *Teléfono:* ' + phoneVal + '\n';
-      text += '━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
-      
-      if (notesVal) {
-        text += '📝 *Observaciones de talles:* ' + notesVal + '\n';
-        text += '━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
-      }
-      
       var grandTotalItems = 0;
       var grandTotalPrice = 0;
+      var itemsText = '';
       
       products.forEach(function(product) {
         var state = orderState[product.id];
@@ -9483,19 +9472,38 @@ Este pantalón babucha, confeccionado en algodón 100% rústico, garantiza suavi
           grandTotalItems += totalGarments;
           grandTotalPrice += subtotal;
           
-          text += '📦 *' + product.title + '*\n';
+          itemsText += '📦 *' + product.title + '*\n';
           if (curvesTotal > 0) {
-            text += '  • Curvas: ' + variantLines.join(', ') + '\n';
+            itemsText += '  • Curvas: ' + variantLines.join(', ') + '\n';
           }
           if (units > 0) {
-            text += '  • Unidades adicionales: ' + units + ' un.\n';
+            itemsText += '  • Unidades adicionales: ' + units + ' un.\n';
           }
           if (state.variantsNotes && state.variantsNotes.trim()) {
-            text += '  • Talle y color de cada unidad: ' + state.variantsNotes.trim() + '\n';
+            itemsText += '  • Talle y color de cada unidad: ' + state.variantsNotes.trim() + '\n';
           }
-          text += '  _Subtotal: ' + (settings.currency || '$') + subtotal.toLocaleString('es-AR') + '_\n\n';
+          itemsText += '  _Subtotal: ' + (settings.currency || '$') + subtotal.toLocaleString('es-AR') + '_\n\n';
         }
       });
+      
+      if (grandTotalItems === 0) {
+        alert('No has agregado ningún producto a tu pedido. Por favor selecciona al menos una curva o unidad.');
+        return null;
+      }
+      
+      var text = '🛒 *NUEVO PEDIDO DESDE EL CATÁLOGO*\n';
+      text += '━━━━━━━━━━━━━━━━━━━━━━━━\n';
+      text += '👤 *Cliente:* ' + (nameVal || 'No especificado') + '\n';
+      if (emailVal) text += '📧 *Email:* ' + emailVal + '\n';
+      if (phoneVal) text += '📞 *Teléfono:* ' + phoneVal + '\n';
+      text += '━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      
+      if (notesVal) {
+        text += '📝 *Observaciones de talles:* ' + notesVal + '\n';
+        text += '━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      }
+      
+      text += itemsText;
       
       text += '━━━━━━━━━━━━━━━━━━━━━━━━\n';
       text += '🔥 *TOTAL PRENDAS:* ' + grandTotalItems + ' prendas\n';
@@ -9507,17 +9515,26 @@ Este pantalón babucha, confeccionado en algodón 100% rústico, garantiza suavi
     }
 
     window.sendOrderWhatsapp = function() {
-      var msg = buildOrderTextMessage();
-      if (!msg) return;
-      
-      var whatsappNumber = settings.whatsappNumber || '';
-      if (!whatsappNumber) {
-        alert('Este catálogo no tiene un número de WhatsApp configurado para recibir pedidos.');
-        return;
+      try {
+        var msg = buildOrderTextMessage();
+        if (!msg) return;
+        
+        var whatsappNumber = settings.whatsappNumber || '';
+        var cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
+        if (!cleanNumber) {
+          alert('Este catálogo no tiene un número de WhatsApp de destino configurado en los ajustes. Por favor, contacta al vendedor.');
+          return;
+        }
+        
+        var url = 'https://wa.me/' + cleanNumber + '?text=' + encodeURIComponent(msg);
+        
+        var newWin = window.open(url, '_blank');
+        if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+          window.location.href = url;
+        }
+      } catch (e) {
+        alert('Ocurrió un error al procesar el envío por WhatsApp: ' + (e.message || e));
       }
-      
-      var url = 'https://wa.me/' + whatsappNumber.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
-      window.open(url, '_blank');
     };
 
     window.sendOrderEmail = function() {
