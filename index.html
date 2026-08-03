@@ -9071,6 +9071,12 @@ Este pantalón babucha, confeccionado en algodón 100% rústico, garantiza suavi
                     </svg>
                     <span>Mandar Pedido por WhatsApp</span>
                   </button>
+                  <button type="button" onclick="window.sendOrderEmail()" class="btn-submit-order email">
+                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-dasharray="none" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L22 8m-2 11H4a2 2 0 01-2-2V7a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Mandar Pedido por Email</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -9522,7 +9528,7 @@ Este pantalón babucha, confeccionado en algodón 100% rústico, garantiza suavi
         var whatsappNumber = settings.whatsappNumber || '';
         var cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
         if (!cleanNumber) {
-          alert('Este catálogo no tiene un número de WhatsApp de destino configurado en los ajustes. Por favor, contacta al vendedor.');
+          alert('Este catálogo no tiene un número de WhatsApp de destino configurado en los ajustes. Por favor, contacta al vendedor o intenta enviar por email.');
           return;
         }
         
@@ -9538,18 +9544,32 @@ Este pantalón babucha, confeccionado en algodón 100% rústico, garantiza suavi
     };
 
     window.sendOrderEmail = function() {
-      var msg = buildOrderTextMessage();
-      if (!msg) return;
-      
-      var contactEmail = settings.contactEmail || '';
-      if (!contactEmail) {
-        alert('Este catálogo no tiene un email de contacto configurado para recibir pedidos.');
-        return;
+      try {
+        var msg = buildOrderTextMessage();
+        if (!msg) return;
+        
+        var contactEmail = (settings.contactEmail || '').trim();
+        if (!contactEmail) {
+          alert('Este catálogo no tiene un email de contacto configurado en los ajustes para recibir pedidos.');
+          return;
+        }
+        
+        var subject = 'Nuevo Pedido - ' + settings.storeName;
+        var mailtoUrl = 'mailto:' + encodeURIComponent(contactEmail) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
+        
+        var a = document.createElement('a');
+        a.href = mailtoUrl;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+          if (document.body && document.body.contains(a)) {
+            document.body.removeChild(a);
+          }
+        }, 1000);
+      } catch (e) {
+        alert('Ocurrió un error al procesar el envío por Email: ' + (e.message || e));
       }
-      
-      var subject = 'Nuevo Pedido - ' + settings.storeName;
-      var url = 'mailto:' + contactEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(msg);
-      window.open(url, '_self');
     };
 
     function updateArrowsState() {
